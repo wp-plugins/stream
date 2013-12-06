@@ -1,0 +1,253 @@
+<?php
+
+class WP_Stream_Connector_Installer extends WP_Stream_Connector {
+
+	/**
+	 * Context name
+	 * @var string
+	 */
+	public static $name = 'installer';
+
+	/**
+	 * Actions registered for this context
+	 * @var array
+	 */
+	public static $actions = array(
+		'upgrader_process_complete', // plugins::installed | themes::installed
+		'activate_plugin', // plugins::activated
+		'deactivate_plugin', // plugins::deactivated
+		'switch_theme', // themes::activated
+		'delete_site_transient_update_themes', // themes::deleted
+		'pre_option_uninstall_plugins', // plugins::deleted
+		'pre_set_site_transient_update_plugins',
+		'wp_redirect',
+	);
+
+	/**
+	 * Return translated context label
+	 *
+	 * @return string Translated context label
+	 */
+	public static function get_label() {
+		return __( 'Installer', 'stream' );
+	}
+
+	/**
+	 * Return translated action labels
+	 *
+	 * @return array Action label translations
+	 */
+	public static function get_action_labels() {
+		return array(
+			'installed' => __( 'Installed', 'stream' ),
+			'activated' => __( 'Activated', 'stream' ),
+			'deactivated' => __( 'Deactivated', 'stream' ),
+			'deleted' => __( 'Deleted', 'stream' ),
+			'edited' => __( 'Edited', 'stream' ),
+		);
+	}
+
+	/**
+	 * Return translated context labels
+	 *
+	 * @return array Context label translations
+	 */
+	public static function get_context_labels() {
+		return array(
+			'plugins' => __( 'Plugins', 'stream' ),
+			'themes' => __( 'Themes', 'stream' ),
+		);
+	}
+
+	/**
+	 * Add action links to Stream drop row in admin list screen
+	 *
+	 * @filter wp_stream_action_links_posts
+	 * @param  array $links      Previous links registered
+	 * @param  int   $stream_id  Stream drop id
+	 * @param  int   $object_id  Object ( post ) id
+	 * @return array             Action links
+	 */
+	public static function action_links( $links, $stream_id, $object_id ) {
+
+		return $links;
+	}
+
+	/**
+	 * Log plugin installations
+	 *
+	 * @action transition_post_status
+	 */
+	public static function callback_upgrader_process_complete( $upgrader, $extra ) {
+		$type    = $extra['type'];
+		$action  = $extra['action'];
+		$success = ! is_a( $upgrader->skin->result, 'WP_Error' );
+		$error   = $success ? null : reset( $upgrader->skin->result->errors )[0];
+
+		if ( ! in_array( $type, array( 'plugin', 'theme' ) ) ) {
+			return;
+		}
+
+		if ( $action == 'install' ) {
+			$slug    = $upgrader->skin->api->slug;
+			$name    = $upgrader->skin->api->name;
+			$from    = $upgrader->skin->options['type'];
+			$action  = 'installed';
+			$message = __( 'Installed %s: %s (%s)', 'stream' );
+		} elseif ( $action == 'update' ) {
+			if ( $type == 'plugin' ) {
+				$slug        = $upgrader->skin->plugin;
+				$plugin_data = get_plugin_data( WP_PLUGIN_DIR . '/' . $slug );
+				$name        = $plugin_data[$slug]['Name'];
+				$version     = $plugin_data['Version'];
+				$plugins     = get_plugins();
+				$old_version = $plugins[$slug]['Version'];
+			}
+			elseif ( $type == 'theme' ) {
+				$slug = $upgrader->skin->theme;
+				$theme = wp_get_theme( $slug );
+				$name = $theme['Name'];
+				$old_version = $theme['Version'];
+				$stylesheet = $theme['Stylesheet Dir'] . '/style.css';
+				$theme_data = get_file_data( $stylesheet, array( 'Version' => 'Version' ) );
+				$version = $theme_data['Version'];
+			}
+			$action  = 'updated';
+			$message = __( 'Updated %s: %s to %s', 'stream' );
+		} else {
+			return false;
+		}
+
+		$context = $type . 's';
+
+		self::log(
+			$message,
+			compact( 'type', 'name', 'version', 'slug', 'success', 'error', 'from' , 'old_version' ),
+			null,
+			array(
+				$context => $action,
+				)
+		);
+	}
+
+	public static function callback_activate_plugin( $slug, $network_wide ) {
+		$plugins = get_plugins();
+		$name  = $plugins[$slug]['Name'];
+		$network_wide = $network_wide ? 'network wide' : '';
+		self::log(
+			__( '"%s" plugin activated %s', 'stream' ),
+			compact( 'name', 'network_wide', 'slug' ),
+			null,
+			array( 'plugins' => 'activated' )
+			);
+	}
+
+	public static function callback_deactivate_plugin( $slug, $network_wide ) {
+		$plugins = get_plugins();
+		$name  = $plugins[$slug]['Name'];
+		$network_wide = $network_wide ? 'network wide' : '';
+		self::log(
+			__( '"%s" plugin deactivated %s', 'stream' ),
+			compact( 'name', 'network_wide', 'slug' ),
+			null,
+			array( 'plugins' => 'deactivated' )
+			);
+	}
+
+	public static function callback_switch_theme( $name, $theme ) {
+		self::log(
+			__( '"%s" theme activated', 'stream' ),
+			compact( 'name', 'theme' ),
+			null,
+			array( 'themes' => 'activated' )
+			);
+	}
+
+	public static function callback_delete_site_transient_update_themes() {
+		$stylesheet = filter_input( INPUT_GET, 'stylesheet' );
+		if ( filter_input( INPUT_GET, 'action' ) != 'delete' || ! $stylesheet ) {
+			return;
+		}
+		$theme = $GLOBALS['theme'];
+		$name  = $theme['Name'];
+		self::log(
+			__( '"%s" theme deleted', 'stream' ),
+			compact( 'name', 'stylesheet' ),
+			null,
+			array( 'themes' => 'deleted' )
+			);
+	}
+
+	public static function callback_pre_option_uninstall_plugins() {
+		global $plugins;
+		if ( filter_input( INPUT_GET, 'action' ) != 'delete-selected' ) {
+			return false;
+		}
+		$_plugins = get_plugins();
+		foreach ( $plugins as $plugin ) {
+			$plugins_to_delete[$plugin] = $_plugins[$plugin];
+		}
+
+		update_option( 'wp_stream_plugins_to_delete', $plugins_to_delete );
+		return false;
+	}
+
+	public static function callback_pre_set_site_transient_update_plugins( $value ) {
+		if ( ! filter_input( INPUT_POST, 'verify-delete' ) || ! ( $plugins_to_delete = get_option( 'wp_stream_plugins_to_delete' ) ) ) {
+			return $value;
+		}
+		foreach ( $plugins_to_delete as $plugin => $data ) {
+			$name = $data['Name'];
+			$network_wide = $data['Network'] ? 'network wide' : null;
+			self::log(
+				__( '"%s" plugin deleted', 'stream' ),
+				compact( 'name', 'plugin', 'network_wide' ),
+				null,
+				array( 'plugins' => 'deleted' )
+				);
+		}
+		delete_option( 'wp_stream_plugins_to_delete' );
+		return $value;
+	}
+
+	public static function callback_wp_redirect( $location ) {
+		if ( ! preg_match( '#(plugin|theme)-editor.php#', $location, $match ) ) {
+			return $location;
+		}
+
+		$type = $match[1];
+
+		list( $url, $query ) = explode( '?', $location );
+		$query = wp_parse_args( $query );
+		$file  = $query['file'];
+
+		if ( empty( $query['file'] ) ) {
+			return $location;
+		}
+
+		if ( $type == 'theme' ) {
+			if ( empty( $query['updated'] ) ) {
+				return $location;
+			}
+			$theme = wp_get_theme( $query['theme'] );
+			$name  = $theme['Name'];
+		}
+		elseif ( $type == 'plugin' ) {
+			global $plugin, $plugins;
+			$data = $plugins[$plugin];
+			$name = $data['Name'];
+		}
+
+		self::log(
+			__( 'Edited %s: %s', 'domain' ),
+			compact( 'type', 'name', 'file' ),
+			null,
+			array( $type . 's' => 'edited' )
+			);
+
+		return $location;
+	}
+
+
+
+}

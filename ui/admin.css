@@ -1,0 +1,43 @@
+.toplevel_page_wp_stream .tablenav {
+	padding-top: 6px;
+}
+
+.toplevel_page_wp_stream .tablenav .actions {
+	padding: 0;
+}
+
+.toplevel_page_wp_stream .view-switch {
+	display: none;
+}
+
+.toplevel_page_wp_stream #filter-date-range {
+	float: left;
+	margin-right: 6px;
+}
+
+.toplevel_page_wp_stream .column-user {
+	width: 15%;
+}
+
+.toplevel_page_wp_stream .column-date,
+.toplevel_page_wp_stream .column-context,
+.toplevel_page_wp_stream .column-action,
+.toplevel_page_wp_stream .column-connector,
+.toplevel_page_wp_stream .column-ip,
+.toplevel_page_wp_stream .column-id {
+	width: 10%;
+}
+
+.toplevel_page_wp_stream .column-user a {
+	vertical-align : top;
+}
+
+.toplevel_page_wp_stream .column-user img {
+	float: left;
+	margin-right: 10px;
+	margin-top: 1px;
+}
+
+.alignleft.actions input[type=text] {
+	height: 28px;
+}

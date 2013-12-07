@@ -3,7 +3,7 @@
  * Plugin Name: Stream
  * Plugin URI: http://x-team.com
  * Description: Track and monitor every change made on your WordPress site. All logged-in user activity is recorded and organized by action and context for easy filtering. Developers can extend Stream with custom connectors to log any kind of action.
- * Version: 0.2
+ * Version: 0.3
  * Author: X-Team
  * Author URI: http://x-team.com/wordpress/
  * License: GPLv2+
@@ -29,6 +29,8 @@
  * Founda
  * tion, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
+
+
 class WP_Stream {
 
 	public static $instance;
@@ -42,6 +44,11 @@ class WP_Stream {
 	 * Class constructor
 	 */
 	public function __construct() {
+
+		if ( version_compare( PHP_VERSION, '5.3', '<' ) ) {
+			add_action( 'all_admin_notices', array( $this, 'php_version_notice' ) );
+			return;
+		}
 
 		define( 'WP_STREAM_DIR', plugin_dir_path( __FILE__ ) );
 		define( 'WP_STREAM_URL', plugin_dir_url( __FILE__ ) );
@@ -95,12 +102,24 @@ class WP_Stream {
 	 * 
 	 * @return WP_Stream
 	 */
-	public function get_instance() {
+	public static function get_instance() {
 		if ( empty( self::$instance ) ) {
 			$class = __CLASS__;
 			self::$instance = new $class;
 		}
 		return self::$instance;
+	}
+
+	/**
+	 * Display a notice about php version
+	 *
+	 * @action all_admin_notices
+	 */
+	public function php_version_notice() {
+		echo sprintf(
+			'<div class="error"><p>%s</p></div>',
+			__( 'Stream requires PHP version 5.3+, plugin is currently NOT ACTIVE.', 'stream' )
+			); // xss okay
 	}
 
 }

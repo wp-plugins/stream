@@ -37,9 +37,9 @@ class WP_Stream_List_Table extends WP_List_Table {
 				'date'      => __( 'Date', 'stream' ),
 				'summary'   => __( 'Summary', 'stream' ),
 				'user'      => __( 'User', 'stream' ),
+				'connector' => __( 'Connector', 'stream' ),
 				'context'   => __( 'Context', 'stream' ),
 				'action'    => __( 'Action', 'stream' ),
-				'connector' => __( 'Connector', 'stream' ),
 				'ip'        => __( 'IP Address', 'stream' ),
 				'id'        => __( 'ID', 'stream' ),
 			)
@@ -156,9 +156,16 @@ class WP_Stream_List_Table extends WP_List_Table {
 				}
 				break;
 
+			case 'connector':
+				$out = $this->column_link( WP_Stream_Connectors::$term_labels['stream_connector'][$item->connector], 'connector', $item->connector );
+				break;
+
 			case 'context':
+				$out = $this->column_link( WP_Stream_Connectors::$term_labels['stream_context'][$item->{$column_name}], $column_name, $item->{$column_name} );
+				break;
+
 			case 'action':
-				$out = $this->column_link( WP_Stream_Connectors::$term_labels['stream_'.$column_name][$item->{$column_name}], $column_name, $item->{$column_name} );
+				$out = $this->column_link( WP_Stream_Connectors::$term_labels['stream_action'][$item->{$column_name}], $column_name, $item->{$column_name} );
 				break;
 
 			case 'id':
@@ -167,10 +174,6 @@ class WP_Stream_List_Table extends WP_List_Table {
 
 			case 'ip':
 				$out = $this->column_link( $item->{$column_name}, 'ip', $item->{$column_name} );
-				break;
-
-			case 'connector':
-				$out = $this->column_link( WP_Stream_Connectors::$term_labels['stream_connector'][$item->connector], 'connector', $item->connector );
 				break;
 
 			default:
@@ -229,11 +232,9 @@ class WP_Stream_List_Table extends WP_List_Table {
 		$filters_string = sprintf( '<input type="hidden" name="page" value="%s"/>', 'wp_stream' );
 
 		$users = array();
-		foreach ( get_users() as $user ) {
+		foreach ( (array) get_users( array( 'orderby' => 'display_name' ) ) as $user ) {
 			$users[$user->ID] = $user->display_name;
 		}
-
-		asort( $users );
 
 		$filters['author'] = array(
 			'title' => __( 'users', 'stream' ),

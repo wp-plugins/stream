@@ -318,6 +318,8 @@ class WP_Stream_Admin {
 			}
 			//Delete database option
 			delete_option( plugin_basename( WP_STREAM_DIR ) . '_db' );
+			delete_option( WP_Stream_Settings::KEY );
+			delete_option( 'dashboard_stream_activity_options' );
 			//Redirect to plugin page
 			wp_redirect( add_query_arg( array( 'deactivate' => true ) , admin_url( 'plugins.php' ) ) );
 			exit;
@@ -438,13 +440,17 @@ class WP_Stream_Admin {
 
 		foreach ( $records as $record ) :
 			$i++;
-			$author      = get_userdata( $record->author );
-			$author_link = add_query_arg(
-				array(
-					'page'   => self::RECORDS_PAGE_SLUG,
-					'author' => isset( $author->ID ) ? absint( $author->ID ) : 0,
-				),
+
+			$author = get_userdata( $record->author );
+
+			$records_link = add_query_arg(
+				array( 'page' => self::RECORDS_PAGE_SLUG ),
 				admin_url( self::ADMIN_PARENT_PAGE )
+			);
+
+			$author_link = add_query_arg(
+				array( 'author' => isset( $author->ID ) ? absint( $author->ID ) : 0 ),
+				$records_link
 			);
 
 			if ( $author ) {
@@ -478,6 +484,13 @@ class WP_Stream_Admin {
 		endforeach;
 
 		echo '</ul>';
+
+		echo sprintf(
+			'<div class="sub-links"><a href="%s" title="%s">%s</a></div>',
+			esc_url( $records_link ),
+			esc_attr__( 'View all Stream Records', 'stream' ),
+			esc_html__( 'More', 'stream' )
+		); // xss ok
 	}
 
 	/**

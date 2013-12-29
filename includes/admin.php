@@ -76,8 +76,6 @@ class WP_Stream_Admin {
 	 * @return void
 	 */
 	public static function register_menu() {
-		global $menu;
-
 		self::$screen_id['main'] = add_menu_page(
 			__( 'Stream', 'stream' ),
 			__( 'Stream', 'stream' ),
@@ -105,6 +103,9 @@ class WP_Stream_Admin {
 	 * Enqueue scripts/styles for admin screen
 	 *
 	 * @action admin_enqueue_scripts
+	 *
+	 * @param $hook
+	 *
 	 * @return void
 	 */
 	public static function admin_enqueue_scripts( $hook ) {
@@ -313,12 +314,17 @@ class WP_Stream_Admin {
 		check_ajax_referer( 'stream_nonce', 'wp_stream_nonce' );
 
 		if ( current_user_can( self::SETTINGS_CAP ) ) {
+			// Prevent stream action from being fired on plugin
+			remove_action( 'deactivate_plugin', array( 'WP_Stream_Connector_Installer', 'callback' ), null );
+
 			// Deactivate the plugin
 			deactivate_plugins( plugin_basename( WP_STREAM_DIR ) . '/stream.php' );
+
 			// Delete all tables
-			foreach ( array( $wpdb->stream, $wpdb->streamcontext, $wpdb->streammeta ) as $table ) {
+			foreach ( WP_Stream_DB::get_instance()->get_table_names() as $table ) {
 				$wpdb->query( "DROP TABLE $table" );
 			}
+
 			//Delete database option
 			delete_option( plugin_basename( WP_STREAM_DIR ) . '_db' );
 			delete_option( WP_Stream_Settings::KEY );
@@ -374,6 +380,12 @@ class WP_Stream_Admin {
 	 * Filter user caps to dynamically grant our view cap based on allowed roles
 	 *
 	 * @filter user_has_cap
+	 *
+	 * @param $allcaps
+	 * @param $caps
+	 * @param $args
+	 * @param $user
+	 *
 	 * @return array
 	 */
 	public static function _filter_user_caps( $allcaps, $caps, $args, $user ) {
@@ -395,6 +407,11 @@ class WP_Stream_Admin {
 	 * Filter role caps to dynamically grant our view cap based on allowed roles
 	 *
 	 * @filter role_has_cap
+	 *
+	 * @param $allcaps
+	 * @param $cap
+	 * @param $role
+	 *
 	 * @return array
 	 */
 	public static function _filter_role_caps( $allcaps, $cap, $role ) {

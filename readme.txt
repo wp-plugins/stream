@@ -11,11 +11,13 @@ Stream tracks logged-in user activity so you can monitor every change made on yo
 
 == Description ==
 
+[youtube http://www.youtube.com/watch?v=DtN3DB0rpkM]
+
 **Note: This plugin requires PHP 5.3 or higher to be activated.**
 
 Never be in the dark about WP Admin activity again. Stream allows you to know exactly when changes to your site have been made, and more importantly, who did them.
 
-Every logged-in user action is logged in an activity stream and organized for easy filtering by context, action, and even IP address.
+Every logged-in user action is logged in an activity stream and organized for easy filtering by connector, context, action and IP address.
 
 **Recorded activity:**
 

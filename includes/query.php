@@ -167,8 +167,13 @@ class WP_Stream_Query {
 		 */
 		$page    = intval( $args['paged'] );
 		$perpage = intval( $args['records_per_page'] );
-		$pgstrt  = ($page - 1) * $perpage;
-		$limits  = "LIMIT $pgstrt, {$perpage}";
+
+		if ( $perpage >= 0 ) {
+			$offset = ($page - 1) * $perpage;
+			$limits = "LIMIT $offset, {$perpage}";
+		} else {
+			$limits = '';
+		}
 
 		/**
 		 * PARSE ORDER PARAMS
@@ -218,11 +223,7 @@ class WP_Stream_Query {
 		$orderby
 		$limits";
 
-		if ( ! empty( $fields ) ) {
-			$results = $wpdb->get_col( $sql );
-		} else {
-			$results = $wpdb->get_results( $sql );
-		}
+		$results = $wpdb->get_results( $sql );
 
 		return $results;
 	}

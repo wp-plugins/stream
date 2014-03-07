@@ -4,7 +4,28 @@ jQuery(function($){
 	if ( jQuery.datepicker ) {
 		$( '.toplevel_page_wp_stream .date-picker' ).datepicker({
 			dateFormat: 'yy/mm/dd',
-			maxDate: 0
+			maxDate: 0,
+			beforeShow: function() {
+				$(this).prop( 'disabled', true );
+			},
+			onClose: function() {
+				$(this).prop( 'disabled', false );
+			}
+		});
+
+		var $date_from = $('.toplevel_page_wp_stream #date_from'),
+			$date_to   = $('.toplevel_page_wp_stream #date_to'),
+			currentDateFrom,
+			currentDateTo;
+
+		$date_from.change( function() {
+			currentDateFrom = $(this).datepicker( 'getDate' );
+			$date_to.datepicker( 'option', 'minDate', currentDateFrom );
+		});
+
+		$date_to.change( function() {
+			currentDateTo = $(this).datepicker( 'getDate' );
+			$date_from.datepicker( 'option', 'maxDate', currentDateTo );
 		});
 	}
 
@@ -84,13 +105,13 @@ jQuery(function($){
 			$optionsForm.prop('action', currentAction.replace( /(^[^#]*).*$/, '$1#' + index ));
 		};
 
-	$tabs.on('click', 'a', function(e){
-		e.preventDefault();
+	$tabs.on('click', 'a', function(){
 		var index = $tabs.find('a').index( $(this) );
 		$panels.hide().eq(index).show();
 		$tabs.find('a').removeClass('nav-tab-active').filter($(this)).addClass('nav-tab-active');
 		window.location.hash = index;
 		syncFormAction(index);
+		return false;
 	});
 	$tabs.children().eq( currentHash ).trigger('click');
 

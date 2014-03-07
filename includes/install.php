@@ -165,6 +165,37 @@ class WP_Stream_Install {
 				}
 			}
 		}
+
+		// If version is lower than 1.2.8, do the update routine
+		// Change the context for Media connectors to the attachment type
+		if ( version_compare( $db_version, '1.2.8', '<' ) ) {
+			$sql = "SELECT r.ID id, r.object_id pid, c.meta_id mid
+				FROM $wpdb->stream r
+				JOIN $wpdb->streamcontext c
+					ON r.ID = c.record_id AND c.connector = 'media' AND c.context = 'media'
+				";
+			$media_records = $wpdb->get_results( $sql ); // db call okay
+
+			require_once( WP_STREAM_INC_DIR . 'query.php' );
+			require_once( WP_STREAM_CLASS_DIR . 'connector.php' );
+			require_once( WP_STREAM_DIR . 'connectors/media.php' );
+
+			foreach ( $media_records as $record ) {
+				$post = get_post( $record->pid );
+				$guid = isset( $post->guid ) ? $post->guid : null;
+				$url  = $guid ? $guid : get_stream_meta( $record->id, 'url', true );
+
+				if ( ! empty( $url ) ) {
+					$wpdb->update(
+						$wpdb->streamcontext,
+						array( 'context' => WP_Stream_Connector_Media::get_attachment_type( $url ) ),
+						array( 'record_id' => $record->id ),
+						array( '%s' ),
+						array( '%d' )
+					);
+				}
+			}
+		}
 	}
 
 }

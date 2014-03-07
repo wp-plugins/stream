@@ -18,6 +18,10 @@
 	padding: 1em 12px;
 }
 
+#dashboard_stream_activity ul {
+	border-bottom: 1px solid #eee;
+}
+
 #dashboard_stream_activity ul li,
 #dashboard_stream_activity .sub-links {
 	padding: 1em 12px;
@@ -157,6 +161,7 @@
 
 .toplevel_page_wp_stream .alignleft.actions input[type=text] {
 	height: 27px;
+	line-height: 19px;
 }
 
 .toplevel_page_wp_stream .select2-container {
@@ -194,4 +199,8 @@
 
 .toplevel_page_wp_stream .new-row.fadeout {
 	background-color: transparent;
+}
+
+.stream_page_wp_stream_settings .nav-tab-wrapper a:not(.nav-tab-active) {
+    border-bottom: 1px solid #ccc;
 }

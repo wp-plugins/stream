@@ -3,14 +3,17 @@ jQuery(function($){
 
 	$( '.toplevel_page_wp_stream select.chosen-select' ).select2({
 			minimumResultsForSearch: 10,
-			formatResult: function (record) {
-				var result = '';
+			formatResult: function (record, container) {
+				var result = '', $elem = $(record.element);
 
-				if ( undefined !== $(record.element).attr('data-icon') ) {
-					result += '<img src="' + $(record.element).attr('data-icon') + '" class="wp-stream-select2-icon">';
+				if ( undefined !== $elem.attr('data-icon') ) {
+					result += '<img src="' + $elem.attr('data-icon') + '" class="wp-stream-select2-icon">';
 				}
 
 				result += record.text;
+
+				// Add more info to the container
+				container.attr('title', $elem.attr('title'));
 
 				return result;
 			},
@@ -98,22 +101,75 @@ jQuery(function($){
 	});
 	$( '.stream_page_wp_stream_settings input[type=hidden].select2-select.ip-addresses').each(function( k, el ){
 		var $input = $(el);
-		var $ip_regex = /^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$/;
+
 		$input.select2({
 			tags:$input.data('selected'),
 			width:350,
-			query: function (query){
-				var data = {results: []};
-				if(typeof (query.term) !== 'undefined' && query.term.match($ip_regex) != null ){
-					data.results.push({id: query.term, text: query.term });
+			ajax: {
+				type: 'POST',
+				url: ajaxurl,
+				dataType: 'json',
+				quietMillis: 500,
+				data: function (term) {
+					return {
+						find:   term,
+						limit:  10,
+						action: 'stream_get_ips',
+						nonce:  $input.data('nonce')
+					};
+				},
+				results: function (response) {
+					var answer = {
+						results: []
+					};
+
+					if (response.success !== true || response.data === undefined ) {
+						return answer;
+					}
+
+					$.each(response.data, function (key, ip ) {
+						answer.results.push({
+							id:   ip,
+							text: ip
+						});
+					});
+
+					return answer;
 				}
-				query.callback(data);
 			},
 			initSelection: function (item, callback) {
 				callback( item.data( 'selected' ) );
 			},
 			formatNoMatches : function(){
 				return '';
+			},
+			createSearchChoice: function(term) {
+				var ip_chunks = [];
+
+				ip_chunks = term.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+
+				if (ip_chunks === null) {
+					return;
+				}
+
+				// remove whole match
+				ip_chunks.shift();
+
+				ip_chunks = $.grep(
+					ip_chunks,
+					function(chunk) {
+						return (chunk.charAt(0) !== '0' && parseInt(chunk, 10) <= 255);
+					}
+				);
+
+				if (ip_chunks.length < 4) {
+					return;
+				}
+
+				return {
+					id:   term,
+					text: term
+				};
 			}
 		}).on('change',function(e){
 			stream_select2_change_handler( e , $input );
@@ -122,7 +178,7 @@ jQuery(function($){
 	var $input_user;
 	$('.stream_page_wp_stream_settings input[type=hidden].select2-select.authors_and_roles').each(function (k, el) {
 		$input_user = $(el);
-		var $roles = $input_user.data('values');
+
 		$input_user.select2({
 			multiple: true,
 			width: 350,
@@ -133,19 +189,29 @@ jQuery(function($){
 				quietMillis: 500,
 				data: function (term, page) {
 					return {
-						'find': term,
-						'limit': 10,
-						'pager': page,
-						'action': 'stream_get_users',
-						'nonce' : $input_user.data('nonce')
+						find:   term,
+						limit:  10,
+						pager:  page,
+						action: 'stream_get_users',
+						nonce:  $input_user.data('nonce')
 					};
 				},
 				results: function (response) {
-					var answer = {
+					var roles  = [],
+						answer = [];
+
+					roles = $.grep(
+						$input_user.data('values'),
+						function(role) {
+							return role.text.toLowerCase().indexOf($input_user.data('select2').search.val().toLowerCase()) >= 0;
+						}
+					);
+
+					answer = {
 						results: [
 							{
 								text: 'Roles',
-								children: $roles
+								children: roles
 							},
 							{
 								text: 'Users',
@@ -153,11 +219,12 @@ jQuery(function($){
 							}
 						]
 					};
+
 					if (response.success !== true || response.data === undefined || response.data.status !== true ) {
 						return answer;
 					}
 					$.each(response.data.users, function (k, user) {
-						if ($.contains($roles, user.id)){
+						if ($.contains(roles, user.id)){
 							user.disabled = true;
 						}
 					});
@@ -166,10 +233,25 @@ jQuery(function($){
 					return answer;
 				}
 			},
+			formatResult: function (object, container) {
+				var result = object.text;
+
+				if ('undefined' !== typeof object.icon) {
+					result = '<img src="' + object.icon + '" class="wp-stream-select2-icon">' + result;
+				}
+				// Add more info to the container
+				if ( 'undefined' !== typeof object.tooltip ) {
+					container.attr( 'title', object.tooltip );
+				} else if ( 'undefined' !== typeof object.user_count ) {
+					container.attr( 'title', object.user_count );
+				}
+				return result;
+			},
 			formatSelection: function (object){
 				if ( $.isNumeric( object.id ) && object.text.indexOf('icon-users') < 0 ){
 					object.text += '<i class="icon16 icon-users"></i>';
 				}
+
 				return object.text;
 			},
 			initSelection: function (item, callback) {
@@ -257,7 +339,7 @@ jQuery(function($){
 		$(document).on( 'heartbeat-tick.stream', function( e, data ) {
 
 			// If this no rows return then we kill the script
-			if ( ! data['wp-stream-heartbeat'] ) {
+			if ( ! data['wp-stream-heartbeat'] || data['wp-stream-heartbeat'].length === 0  ) {
 				return;
 			}
 
@@ -308,7 +390,7 @@ jQuery(function($){
 		//Enable Live Update Checkbox Ajax
 		$( '#enable_live_update' ).click( function() {
 			var nonce   = $( '#enable_live_update_nonce' ).val();
-			var user	= $( '#enable_live_update_user' ).val();
+			var user = $( '#enable_live_update_user' ).val();
 			var checked = 'unchecked';
 			if ( $('#enable_live_update' ).is( ':checked' ) ) {
 				checked = 'checked';
@@ -327,6 +409,89 @@ jQuery(function($){
 				}
 			});
 		});
+
+		function toggle_filter_submit() {
+			var all_hidden = true;
+			// If all filters are hidden, hide the button
+			if ( ! $( 'div.date-interval' ).is( ':hidden' ) ) {
+				all_hidden = false;
+			}
+			var divs = $( 'div.alignleft.actions div.select2-container' );
+			divs.each( function() {
+				if ( ! $(this).is( ':hidden' ) ) {
+					all_hidden = false;
+					return false;
+				}
+			});
+			if ( all_hidden ) {
+				$( 'input#record-query-submit' ).hide();
+				$( 'span.filter_info' ).show();
+			} else {
+				$( 'input#record-query-submit' ).show();
+				$( 'span.filter_info' ).hide();
+			}
+		}
+
+		if ( $( 'div.stream-toggle-filters [id="date_range"]' ).is( ':checked' ) ) {
+			$( 'div.date-interval' ).show();
+		} else {
+			$( 'div.date-interval' ).hide();
+		}
+
+		var filters = [ 'date_range', 'author', 'connector', 'context', 'action' ];
+		for( var i=0; i < filters.length; i++ ) {
+			if ( $( 'div.stream-toggle-filters [id="' + filters[i] + '"]'  ).is( ':checked' ) ) {
+				$( '[name="' + filters[i] + '"]' ).prev( '.select2-container' ).show();
+			} else {
+				$( '[name="' + filters[i] + '"]' ).prev( '.select2-container' ).hide();
+			}
+		}
+
+		toggle_filter_submit();
+
+		//Enable Filter Toggle Checkbox Ajax
+		$( 'div.stream-toggle-filters input[type=checkbox]' ).click( function() {
+
+			// Disable other checkboxes for duration of request to avoid "clickjacking"
+			var siblings = $(this).closest('div').find('input:checkbox');
+			siblings.attr( 'disabled', true );
+			var nonce = $( '#toggle_filters_nonce' ).val();
+			var user = $( '#toggle_filters_user' ).val();
+			var checked = 'unchecked';
+			var checkbox = $(this).attr('id');
+			if ( $(this).is( ':checked' ) ) {
+				checked = 'checked';
+			}
+
+			$.ajax({
+				type: 'POST',
+				url: ajaxurl,
+				data: { action: 'stream_toggle_filters', nonce : nonce, user : user, checked : checked, checkbox: checkbox },
+				dataType: 'json',
+				beforeSend : function() {
+					$( checkbox + ' .spinner' ).show().css( { 'display' : 'inline-block' } );
+
+				},
+				success : function( data ) {
+
+					var date_interval_div = $( 'div.date-interval' );
+					// toggle visibility of input whose name attr matches checkbox ID
+					if ( data.control === 'date_range' ) {
+						date_interval_div.toggle();
+					} else {
+						var control = $( '[name="' + data.control + '"]');
+						if ( control.is( 'select' ) ) {
+							$( control ).prev( '.select2-container' ).toggle();
+						}
+					}
+
+					toggle_filter_submit();
+
+				}
+			});
+			siblings.attr( 'disabled', false );
+		});
+
 
 		$( '#ui-datepicker-div' ).addClass( 'stream-datepicker' );
 
@@ -362,9 +527,28 @@ jQuery(function($){
 
 				if ( jQuery.datepicker ) {
 
+					// Apply a GMT offset due to Date() using the visitor's local time
+					var siteGMTOffsetHours  = parseFloat( wp_stream.gmt_offset );
+					var localGMTOffsetHours = new Date().getTimezoneOffset() / 60 * -1;
+					var totalGMTOffsetHours = siteGMTOffsetHours - localGMTOffsetHours;
+
+					var localTime = new Date();
+					var siteTime = new Date( localTime.getTime() + ( totalGMTOffsetHours * 60 * 60 * 1000 ) );
+					var dayOffset = '0';
+
+					// check if the site date is different from the local date, and set a day offset
+					if ( localTime.getDate() !== siteTime.getDate() || localTime.getMonth() !== siteTime.getMonth() ) {
+						if ( localTime.getTime() < siteTime.getTime() ) {
+							dayOffset = '+1d';
+						} else {
+							dayOffset = '-1d';
+						}
+					}
+
 					datepickers.datepicker({
 						dateFormat: 'yy/mm/dd',
-						maxDate: 0,
+						maxDate: dayOffset,
+						defaultDate: siteTime,
 						beforeShow: function() {
 							$(this).prop( 'disabled', true );
 						},
@@ -424,11 +608,10 @@ jQuery(function($){
 
 						if ('' !== from.val()) {
 							from_remove.show();
+							to.datepicker('option', 'minDate', from.val());
 						} else {
 							from_remove.hide();
 						}
-
-						to.datepicker('option', 'minDate', from.val());
 
 						if (arguments[arguments.length-1] === true) {
 							return false;
@@ -442,11 +625,10 @@ jQuery(function($){
 					'change': function () {
 						if ('' !== to.val()) {
 							to_remove.show();
+							from.datepicker('option', 'maxDate', to.val());
 						} else {
 							to_remove.hide();
 						}
-
-						from.datepicker('option', 'maxDate', to.val());
 
 						if (arguments[arguments.length-1] === true) {
 							return false;

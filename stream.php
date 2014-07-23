@@ -3,7 +3,7 @@
  * Plugin Name: Stream
  * Plugin URI: https://wp-stream.com/
  * Description: Stream tracks logged-in user activity so you can monitor every change made on your WordPress site in beautifully organized detail. All activity is organized by context, action and IP address for easy filtering. Developers can extend Stream with custom connectors to log any kind of action.
- * Version: 1.4.8
+ * Version: 1.4.9
  * Author: Stream
  * Author URI: https://wp-stream.com/
  * License: GPLv2+
@@ -36,7 +36,7 @@ class WP_Stream {
 	 *
 	 * @const string
 	 */
-	const VERSION = '1.4.8';
+	const VERSION = '1.4.9';
 
 	/**
 	 * Hold Stream instance
@@ -54,6 +54,13 @@ class WP_Stream {
 	 * @var WP_Stream_Network
 	 */
 	public $network = null;
+
+	/**
+	 * Admin notices, collected and displayed on proper action
+	 *
+	 * @var array
+	 */
+	public static $notices = array();
 
 	/**
 	 * Class constructor
@@ -76,9 +83,6 @@ class WP_Stream {
 
 		// Install the plugin
 		add_action( 'wp_stream_before_db_notices', array( __CLASS__, 'install' ) );
-
-		// Trigger admin notices
-		add_action( 'all_admin_notices', array( __CLASS__, 'admin_notices' ) );
 
 		// Load languages
 		add_action( 'plugins_loaded', array( __CLASS__, 'i18n' ) );
@@ -266,26 +270,25 @@ class WP_Stream {
 				WP_CLI::success( $message );
 			}
 		} else {
-			self::admin_notices( $message, $is_error );
+			// Trigger admin notices
+			add_action( 'all_admin_notices', array( __CLASS__, 'admin_notices' ) );
+
+			self::$notices[] = compact( 'message', 'is_error' );
 		}
 	}
 
 	/**
 	 * Show an error or other message in the WP Admin
 	 *
-	 * @param string $message
-	 * @param bool $is_error
+	 * @action all_admin_notices
 	 * @return void
 	 */
-	public static function admin_notices( $message, $is_error = true ) {
-		if ( empty( $message ) ) {
-			return;
+	public static function admin_notices() {
+		foreach ( self::$notices as $notice ) {
+			$class_name   = empty( $notice['is_error'] ) ? 'updated' : 'error';
+			$html_message = sprintf( '<div class="%s">%s</div>', esc_attr( $class_name ), wpautop( $notice['message'] ) );
+			echo wp_kses_post( $html_message );
 		}
-
-		$class_name   = $is_error ? 'error' : 'updated';
-		$html_message = sprintf( '<div class="%s">%s</div>', esc_attr( $class_name ), wpautop( $message ) );
-
-		echo wp_kses_post( $html_message );
 	}
 
 	/**

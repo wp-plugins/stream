@@ -1,6 +1,6 @@
 /*jslint nomen: true */
-/*global jQuery, _, nv, d3, stream, streamReportsLocal, ajaxurl, document, window */
-( function( window, $, _, nv, d3, streamReportsLocal ) {
+/*global jQuery, _, nv, d3, stream, wp_stream_reports, ajaxurl, document, window */
+( function( window, $, _, nv, d3, wp_stream_reports ) {
 	'use strict';
 
 	var report = {};
@@ -23,7 +23,7 @@
 				if ( _.isFunction( $.fn.datepicker ) ) {
 
 					// Apply a GMT offset due to Date() using the visitor's local time
-					var siteGMTOffsetHours  = parseFloat( streamReportsLocal.gmt_offset ),
+					var siteGMTOffsetHours  = parseFloat( wp_stream_reports.gmt_offset ),
 						localGMTOffsetHours = new Date().getTimezoneOffset() / 60 * -1,
 						totalGMTOffsetHours = siteGMTOffsetHours - localGMTOffsetHours,
 						localTime           = new Date(),
@@ -245,7 +245,7 @@
 
 			// Confirmation of deletion
 			this.$deleteBtn.click( function() {
-				if ( ! window.confirm( streamReportsLocal.deletemsg ) ) {
+				if ( ! window.confirm( wp_stream_reports.i18n.deletemsg ) ) {
 					return false;
 				}
 			});
@@ -311,7 +311,7 @@
 				var $titleText, $inputBox;
 
 				// Remove event handler added by core and add it back when user click cancel or save
-				if ( $target.text() === streamReportsLocal.configure ) {
+				if ( $target.text() === wp_stream_reports.i18n.configure ) {
 					$titleText = $curPostbox.find( '.hndle .title' );
 					$inputBox  = $( '<input/>', {
 						'type': 'text',
@@ -330,7 +330,7 @@
 					$curPostbox.find( 'h3' ).off( 'click.postboxes' );
 
 					// Switch configure button text
-					$target.text( streamReportsLocal.cancel );
+					$target.text( wp_stream_reports.i18n.cancel );
 				} else {
 					$inputBox  = $curPostbox.find( '.hndle .title' );
 					$titleText = $( '<span/>', {
@@ -352,7 +352,7 @@
 					$curPostbox.find( 'h3' ).on( 'click.postboxes', parent.$clickFunction );
 
 					// Switch cancel button text
-					$target.text( streamReportsLocal.configure );
+					$target.text( wp_stream_reports.i18n.configure );
 				}
 
 				// Always show the cancel button
@@ -388,7 +388,6 @@
 			var option    = parent.find( '.chart-dataset' ).select2( 'data' ).element[0].dataset;
 			var connector = option.connector;
 			var context   = option.context;
-			var blog      = option.blog;
 			var action    = parent.find( '.chart-action' ).select2( 'data' ).element[0].dataset.action;
 			var selector  = parent.find( '.chart-selector' ).select2( 'data' ).id;
 
@@ -405,7 +404,6 @@
 					data_connector: connector,
 					data_context: context,
 					data_action: action,
-					data_blog: blog,
 					data_selector: selector
 				},
 				dataType: 'json',
@@ -777,4 +775,4 @@
 		);
 	});
 
-} ( window, jQuery.noConflict(), _.noConflict(), nv, d3, streamReportsLocal ) );
+} ( window, jQuery.noConflict(), _.noConflict(), nv, d3, wp_stream_reports ) );

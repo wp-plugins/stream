@@ -3,7 +3,7 @@
  * Plugin Name: Stream
  * Plugin URI: https://wp-stream.com/
  * Description: Stream tracks logged-in user activity so you can monitor every change made on your WordPress site in beautifully organized detail. All activity is organized by context, action and IP address for easy filtering. Developers can extend Stream with custom connectors to log any kind of action.
- * Version: 2.0.1
+ * Version: 2.0.2
  * Author: Stream
  * Author URI: https://wp-stream.com/
  * License: GPLv2+
@@ -36,7 +36,7 @@ class WP_Stream {
 	 *
 	 * @const string
 	 */
-	const VERSION = '2.0.1';
+	const VERSION = '2.0.2';
 
 	/**
 	 * Hold Stream instance
@@ -100,8 +100,12 @@ class WP_Stream {
 			wp_die( __( 'Stream: Could not load chosen DB driver.', 'stream' ), 'Stream DB Error' );
 		}
 
-		// Load API helper interface/class
-		self::$api = new WP_Stream_API;
+		/**
+		 * Filter allows a custom Stream API class to be instantiated
+		 *
+		 * @return object  The API class object
+		 */
+		self::$api = apply_filters( 'wp_stream_api_class', new WP_Stream_API );
 
 		// Install the plugin
 		add_action( 'wp_stream_before_db_notices', array( __CLASS__, 'install' ) );
@@ -266,6 +270,11 @@ class WP_Stream {
 			$development_mode = true;
 		}
 
+		/**
+		 * Filter allows development mode to be overridden
+		 *
+		 * @return bool
+		 */
 		return apply_filters( 'wp_stream_development_mode', $development_mode );
 	}
 
@@ -299,7 +308,7 @@ class WP_Stream {
 	/**
 	 * Show an error or other message in the WP Admin
 	 *
-	 * @action all_admin_notices
+	 * @action shutdown
 	 * @return void
 	 */
 	public static function admin_notices() {
@@ -343,7 +352,7 @@ class WP_Stream {
 		 * Filter allows the HTML output of the frontend indicator comment
 		 * to be altered or removed, if desired.
 		 *
-		 * @return string $comment The content of the HTML comment
+		 * @return string  The content of the HTML comment
 		 */
 		$comment = apply_filters( 'wp_stream_frontend_indicator', $comment );
 

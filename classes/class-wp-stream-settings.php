@@ -202,66 +202,107 @@ class WP_Stream_Settings {
 	 * @return array Multidimensional array of fields
 	 */
 	public static function get_fields() {
-		if ( empty( self::$fields ) ) {
-			$fields = array(
-				'general' => array(
-					'title'  => esc_html__( 'General', 'stream' ),
-					'fields' => array(
-						array(
-							'name'        => 'role_access',
-							'title'       => esc_html__( 'Role Access', 'stream' ),
-							'type'        => 'multi_checkbox',
-							'desc'        => esc_html__( 'Users from the selected roles above will have permission to view Stream Records. However, only site Administrators can access Stream Settings.', 'stream' ),
-							'choices'     => self::get_roles(),
-							'default'     => array( 'administrator' ),
-						),
-						array(
-							'name'        => 'private_feeds',
-							'title'       => esc_html__( 'Private Feeds', 'stream' ),
-							'type'        => 'checkbox',
-							'desc'        => sprintf(
-								__( 'Users from the selected roles above will be given a private key found in their %suser profile%s to access feeds of Stream Records securely. Please %sflush rewrite rules%s on your site after changing this setting.', 'stream' ),
-								sprintf(
-									'<a href="%s" title="%s">',
-									admin_url( sprintf( 'profile.php#wp-stream-highlight:%s', WP_Stream_Feeds::USER_FEED_OPTION_KEY ) ),
-									esc_attr__( 'View Profile', 'stream' )
-								),
-								'</a>',
-								sprintf(
-									'<a href="%s" title="%s" target="_blank">',
-									esc_url( 'http://codex.wordpress.org/Rewrite_API/flush_rules#What_it_does' ),
-									esc_attr__( 'View Codex', 'stream' )
-								),
-								'</a>'
+		$fields = array(
+			'general' => array(
+				'title'  => esc_html__( 'General', 'stream' ),
+				'fields' => array(
+					array(
+						'name'        => 'role_access',
+						'title'       => esc_html__( 'Role Access', 'stream' ),
+						'type'        => 'multi_checkbox',
+						'desc'        => esc_html__( 'Users from the selected roles above will have permission to view Stream Records. However, only site Administrators can access Stream Settings.', 'stream' ),
+						'choices'     => self::get_roles(),
+						'default'     => array( 'administrator' ),
+					),
+					array(
+						'name'        => 'private_feeds',
+						'title'       => esc_html__( 'Private Feeds', 'stream' ),
+						'type'        => 'checkbox',
+						'desc'        => sprintf(
+							__( 'Users from the selected roles above will be given a private key found in their %suser profile%s to access feeds of Stream Records securely. Please %sflush rewrite rules%s on your site after changing this setting.', 'stream' ),
+							sprintf(
+								'<a href="%s" title="%s">',
+								admin_url( sprintf( 'profile.php#wp-stream-highlight:%s', WP_Stream_Feeds::USER_FEED_OPTION_KEY ) ),
+								esc_attr__( 'View Profile', 'stream' )
 							),
-							'after_field' => esc_html__( 'Enabled', 'stream' ),
-							'default'     => 0,
+							'</a>',
+							sprintf(
+								'<a href="%s" title="%s" target="_blank">',
+								esc_url( 'http://codex.wordpress.org/Rewrite_API/flush_rules#What_it_does' ),
+								esc_attr__( 'View Codex', 'stream' )
+							),
+							'</a>'
 						),
+						'after_field' => esc_html__( 'Enabled', 'stream' ),
+						'default'     => 0,
 					),
 				),
-				'exclude' => array(
-					'title' => esc_html__( 'Exclude', 'stream' ),
-					'fields' => array(
-						array(
-							'name'        => 'rules',
-							'title'       => esc_html__( 'Exclude Rules', 'stream' ),
-							'type'        => 'rule_list',
-							'desc'        => esc_html__( 'Create rules for excluding certain kinds of records from appearing in Stream.', 'stream' ),
-							'default'     => array(),
-							'nonce'       => 'stream_get_ips',
-						),
+			),
+			'exclude' => array(
+				'title'  => esc_html__( 'Exclude', 'stream' ),
+				'fields' => array(
+					array(
+						'name'        => 'rules',
+						'title'       => esc_html__( 'Exclude Rules', 'stream' ),
+						'type'        => 'rule_list',
+						'desc'        => esc_html__( 'Create rules for excluding certain kinds of records from appearing in Stream.', 'stream' ),
+						'default'     => array(),
+						'nonce'       => 'stream_get_ips',
 					),
 				),
+			),
+			'advanced' => array(
+				'title'  => esc_html__( 'Advanced', 'stream' ),
+				'fields' => array(
+					array(
+						'name'        => 'comment_flood_tracking',
+						'title'       => esc_html__( 'Comment Flood Tracking', 'stream' ),
+						'type'        => 'checkbox',
+						'desc'        => __( 'WordPress will automatically prevent duplicate comments from flooding the database. By default, Stream does not track these attempts unless you opt-in here. Enabling this is not necessary or recommended for most sites.', 'stream' ),
+						'after_field' => esc_html__( 'Enabled', 'stream' ),
+						'default'     => 0,
+					),
+					array(
+						'name'        => 'wp_cron_tracking',
+						'title'       => esc_html__( 'WP Cron Tracking', 'stream' ),
+						'type'        => 'checkbox',
+						'desc'        => __( 'By default, Stream does not track activity performed by WordPress cron events unless you opt-in here. Enabling this is not necessary or recommended for most sites.', 'stream' ),
+						'after_field' => esc_html__( 'Enabled', 'stream' ),
+						'default'     => 0,
+					),
+				),
+			),
+		);
+
+		// If Akismet is active, allow Admins to opt-in to Akismet tracking
+		if ( class_exists( 'Akismet' ) ) {
+			$akismet_tracking = array(
+				'name'        => 'akismet_tracking',
+				'title'       => esc_html__( 'Akismet Tracking', 'stream' ),
+				'type'        => 'checkbox',
+				'desc'        => __( 'Akismet already keeps statistics for comment attempts that it blocks as SPAM. By default, Stream does not track these attempts unless you opt-in here. Enabling this is not necessary or recommended for most sites.', 'stream' ),
+				'after_field' => esc_html__( 'Enabled', 'stream' ),
+				'default'     => 0,
 			);
+
+			array_push( $fields['advanced']['fields'], $akismet_tracking );
+		}
+
+		// Sort option fields in each tab by title ASC
+		foreach ( $fields as $tab => $options ) {
+			$titles = wp_list_pluck( $fields[ $tab ]['fields'], 'title' );
+
+			array_multisort( $titles, SORT_ASC, $fields[ $tab ]['fields'] );
 		}
 
 		/**
 		 * Filter allows for modification of options fields
 		 *
-		 * @param  array  array of fields
-		 * @return array  updated array of fields
+		 * @return array  Array of option fields
 		 */
-		return apply_filters( 'wp_stream_settings_option_fields', $fields );
+		self::$fields = apply_filters( 'wp_stream_settings_option_fields', $fields );
+
+		return self::$fields;
 	}
 
 	/**
@@ -392,6 +433,8 @@ class WP_Stream_Settings {
 		$placeholder = isset( $field['placeholder'] ) ? $field['placeholder'] : null;
 		$description = isset( $field['desc'] ) ? $field['desc'] : null;
 		$href        = isset( $field['href'] ) ? $field['href'] : null;
+		$rows        = isset( $field['rows'] ) ? $field['rows'] : 10;
+		$cols        = isset( $field['cols'] ) ? $field['cols'] : 50;
 		$after_field = isset( $field['after_field'] ) ? $field['after_field'] : null;
 		$default     = isset( $field['default'] ) ? $field['default'] : null;
 		$title       = isset( $field['title'] ) ? $field['title'] : null;
@@ -431,6 +474,20 @@ class WP_Stream_Settings {
 					esc_attr( $class ),
 					esc_attr( $placeholder ),
 					esc_attr( $current_value ),
+					$after_field // xss ok
+				);
+				break;
+			case 'textarea':
+				$output = sprintf(
+					'<textarea name="%1$s[%2$s_%3$s]" id="%1$s_%2$s_%3$s" class="%4$s" placeholder="%5$s" rows="%6$d" cols="%7$d">%8$s</textarea> %9$s',
+					esc_attr( $option_key ),
+					esc_attr( $section ),
+					esc_attr( $name ),
+					esc_attr( $class ),
+					esc_attr( $placeholder ),
+					absint( $rows ),
+					absint( $cols ),
+					esc_textarea( $current_value ),
 					$after_field // xss ok
 				);
 				break;
@@ -527,7 +584,7 @@ class WP_Stream_Settings {
 				);
 				break;
 			case 'select2' :
-				if ( ! isset ( $current_value ) ) {
+				if ( ! isset( $current_value ) ) {
 					$current_value = '';
 				}
 
@@ -821,7 +878,7 @@ class WP_Stream_Settings {
 	public static function get_terms_labels( $column ) {
 		$return_labels = array();
 
-		if ( isset ( WP_Stream_Connectors::$term_labels[ 'stream_' . $column ] ) ) {
+		if ( isset( WP_Stream_Connectors::$term_labels[ 'stream_' . $column ] ) ) {
 			if ( 'context' === $column && isset( WP_Stream_Connectors::$term_labels['stream_connector'] ) ) {
 				$connectors = WP_Stream_Connectors::$term_labels['stream_connector'];
 				$contexts   = WP_Stream_Connectors::$term_labels['stream_context'];

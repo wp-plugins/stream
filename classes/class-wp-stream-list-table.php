@@ -151,6 +151,9 @@ class WP_Stream_List_Table extends WP_List_Table {
 			'date',
 			'date_from',
 			'date_to',
+			'record_after', // Deprecated, use date_after instead
+			'date_after',
+			'date_before',
 		);
 
 		foreach ( $params as $param ) {
@@ -234,7 +237,9 @@ class WP_Stream_List_Table extends WP_List_Table {
 				break;
 
 			case 'summary' :
-				$out = $item->summary;
+				$out           = $item->summary;
+				$object_title  = wp_stream_get_object_title( $item );
+				$view_all_text = $object_title ? sprintf( __( 'View all activity for "%s"', 'stream' ), esc_attr( $object_title ) ) : __( 'View all activity for this object', 'stream' );
 				if ( $item->object_id ) {
 					$out .= $this->column_link(
 						'<span class="dashicons dashicons-search stream-filter-object-id"></span>',
@@ -243,7 +248,7 @@ class WP_Stream_List_Table extends WP_List_Table {
 							'context'   => $item->context,
 						),
 						null,
-						__( 'View all records for this object', 'stream' )
+						esc_attr( $view_all_text )
 					);
 				}
 				$out .= $this->get_action_links( $item );
@@ -719,7 +724,8 @@ class WP_Stream_List_Table extends WP_List_Table {
 			<select class="field-predefined hide-if-no-js" name="date_predefined" data-placeholder="<?php _e( 'All Time', 'stream' ); ?>">
 				<option></option>
 				<option value="custom" <?php selected( 'custom' === $date_predefined ); ?>><?php esc_attr_e( 'Custom', 'stream' ) ?></option>
-				<?php foreach ( $items as $key => $interval ) {
+				<?php
+				foreach ( $items as $key => $interval ) {
 					printf(
 						'<option value="%s" data-from="%s" data-to="%s" %s>%s</option>',
 						esc_attr( $key ),
@@ -728,7 +734,8 @@ class WP_Stream_List_Table extends WP_List_Table {
 						selected( $key === $date_predefined ),
 						esc_html( $interval['label'] )
 					); // xss ok
-				} ?>
+				}
+				?>
 			</select>
 
 			<div class="date-inputs">

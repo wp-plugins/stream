@@ -1,9 +1,9 @@
 === Stream ===
-Contributors:      lukecarbis, fjarrett, shadyvb, westonruter, stream, xwp
+Contributors:      fjarrett, lukecarbis, shadyvb, westonruter, stream, xwp
 Tags:              actions, activity, admin, analytics, dashboard, log, notification, stream, users
 Requires at least: 3.7
 Tested up to:      4.1
-Stable tag:        2.0.3
+Stable tag:        2.0.4
 License:           GPLv2 or later
 License URI:       https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -13,17 +13,15 @@ Stream is the easiest and safest way to track content changes happening to your 
 
 [youtube https://www.youtube.com/watch?v=t_qD4Sp4E70]
 
-**Note: This plugin requires PHP 5.3 or higher.**
+**Sign up for free at [https://wp-stream.com](https://wp-stream.com)**
 
 Never be in the dark about WP Admin activity again.
 
 Stream allows you to know exactly when changes to your site have been made, and more importantly, who did them.
 
-Every logged-in user action is logged in an activity stream and organized for easy filtering by user, role, context, action and IP address.
+Every logged-in user action is displayed in an activity stream and organized for easy filtering by User, Role, Context, Action and IP address.
 
-Built with performance in mind, Stream won't slow down content querying on your site.
-
-**Built-In Tracking For Popular Plugins:**
+**Built-In Tracking Integrations For Popular Plugins:**
 
  * [Advanced Custom Fields](https://wp-stream.com/connectors/acf/)
  * [bbPress](https://wp-stream.com/connectors/bbpress/)
@@ -34,7 +32,7 @@ Built with performance in mind, Stream won't slow down content querying on your 
  * [WooCommerce](https://wp-stream.com/connectors/woocommerce/)
  * [WordPress SEO by Yoast](https://wp-stream.com/connectors/wordpress-seo/)
 
-**Plus Core Tracking For:**
+**Built-In Tracking For Core Actions:**
 
  * Posts
  * Pages
@@ -91,13 +89,26 @@ Thank you for wanting to make Stream better for everyone! We salute you.
 
 == Screenshots ==
 
-1. Every logged-in user action is logged in the activity stream and organized for easy filtering and searching.
-2. Enable live updates in Screen Options to watch your site activity flow into the Stream in real-time.
-3. Build notification rules to be alerted when important changes are made on your site.
-4. Generate stunning visuals of logged-in user activity and share them with stakeholders or your clients.
-5. Create rules for excluding certain kinds of records from appearing in Stream.
+1. Every logged-in user action is displayed in an activity stream and organized for easy filtering and searching.
+2. Enable live updates in Screen Options to watch your site activity appear in near real-time.
+3. Create rules for excluding certain kinds of records from appearing in Stream.
+4. Pro Feature: Build notification rules to be alerted when important changes are made on your site.
+5. Pro Feature: Generate stunning visuals of logged-in user activity and share them with stakeholders or your clients.
 
 == Changelog ==
+
+= 2.0.4 - April 16, 2015 =
+
+* New: Add reset button to reset search filters ([#144](https://github.com/wp-stream/stream/issues/144))
+* Tweak: WP-CLI command output improvements via `--format` option for table view, JSON and CSV ([#705](https://github.com/wp-stream/stream/pull/705))
+* Tweak: Add link to https://wp-stream.com in README ([#709](https://github.com/wp-stream/stream/issues/709))
+* Tweak: Better highlighting on multiple live update rows
+* Tweak: Limit custom range datepickers based on the Stream plan type
+* Tweak: Limit legacy record migrations based on the Stream plan type
+* Fix: Allow properties with values of zero to be included in queries ([#698](https://github.com/wp-stream/stream/issues/698))
+* Fix: Properly return record success/failure in log and store methods ([#711](https://github.com/wp-stream/stream/issues/711))
+
+Props [@fjarrett](https://github.com/fjarrett), [@szepeviktor](https://github.com/szepeviktor)
 
 = 2.0.3 - January 23, 2015 =
 

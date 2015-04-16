@@ -46,13 +46,6 @@ class WP_Stream_API {
 	public $api_url = 'https://api.wp-stream.com';
 
 	/**
-	 * The API Version
-	 *
-	 * @var string
-	 */
-	public $api_version = '0.0.2';
-
-	/**
 	 * Error messages
 	 *
 	 * @var array
@@ -145,6 +138,112 @@ class WP_Stream_API {
 		}
 
 		return $site;
+	}
+
+	/**
+	 * Return this site's plan type
+	 *
+	 * @return string
+	 */
+	public function get_plan_type() {
+		$site = WP_Stream::$api->get_site();
+
+		return isset( $site->plan->type ) ? esc_html( $site->plan->type ) : 'free';
+	}
+
+	/**
+	 * Return this site's plan type label
+	 *
+	 * @return string
+	 */
+	public function get_plan_type_label() {
+		$type = WP_Stream::$api->get_plan_type();
+
+		// Only check the beginning of these type strings
+		if ( 0 === strpos( $type, 'pro' ) ) {
+			$label = __( 'Pro', 'stream' );
+		} else {
+			$label = __( 'Free', 'stream' );
+		}
+
+		return $label;
+	}
+
+	/**
+	 * Return this site's plan retention length
+	 *
+	 * @return int
+	 */
+	public function get_plan_retention() {
+		$site = WP_Stream::$api->get_site();
+
+		return isset( $site->plan->retention ) ? absint( $site->plan->retention ) : 30;
+	}
+
+	/**
+	 * Return this site's plan retention label
+	 *
+	 * @return string
+	 */
+	public function get_plan_retention_label() {
+		$retention = WP_Stream::$api->get_plan_retention();
+
+		if ( 0 === $retention ) {
+			$label = __( '1 Year', 'stream' );
+		} else {
+			$label = sprintf(
+				_n( '1 Day', '%s Days', $retention, 'stream' ),
+				$retention
+			);
+		}
+
+		return $label;
+	}
+
+	/**
+	 * Return the oldest record date (GMT) allowed for this site's plan
+	 *
+	 * @return string
+	 */
+	public function get_plan_retention_max_date( $format = 'Y-m-d H:i:s' ) {
+		$retention = WP_Stream::$api->get_plan_retention();
+
+		return empty( $retention ) ? gmdate( $format, strtotime( '1 year ago' ) ) : gmdate( $format, strtotime( sprintf( '%d days ago', $retention ) ) );
+	}
+
+	/**
+	 * Return this site's plan amount
+	 *
+	 * @return string
+	 */
+	public function get_plan_amount() {
+		$site = WP_Stream::$api->get_site();
+
+		return isset( $site->plan->amount ) ? esc_html( $site->plan->amount ) : 0;
+	}
+
+	/**
+	 * Return the account creation date for this site
+	 *
+	 * @return string
+	 */
+	public function get_created_date() {
+		$site        = WP_Stream::$api->get_site();
+		$date_format = get_option( 'date_format' );
+
+		return isset( $site->created ) ? date_i18n( $date_format, strtotime( $site->created ) ) : __( 'N/A', 'stream' );
+	}
+
+	/**
+	 * Return the expiration date for this site's plan
+	 *
+	 * @return string
+	 */
+	public function get_expiry_date() {
+		$site        = WP_Stream::$api->get_site();
+		$date_format = get_option( 'date_format' );
+
+		return isset( $site->expiry->date ) ? date_i18n( $date_format, strtotime( $site->expiry->date ) ) : __( 'N/A', 'stream' );
 	}
 
 	/**
@@ -296,7 +395,6 @@ class WP_Stream_API {
 		$args = wp_parse_args( $args, $defaults );
 
 		$args['headers']['Stream-Site-API-Key'] = $this->api_key;
-		$args['headers']['Accept-Version']      = $this->api_version;
 		$args['headers']['Content-Type']        = 'application/json';
 
 		if ( WP_Stream::is_development_mode() ) {

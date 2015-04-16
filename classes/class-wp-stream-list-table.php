@@ -5,6 +5,14 @@ class WP_Stream_List_Table extends WP_List_Table {
 	function __construct( $args = array() ) {
 
 		$screen_id = isset( $args['screen'] ) ? $args['screen'] : null;
+
+		/**
+		 * Filter the list table screen ID
+		 *
+		 * @since 1.4.0
+		 *
+		 * @return string
+		 */
 		$screen_id = apply_filters( 'wp_stream_list_table_screen_id', $screen_id );
 
 		parent::__construct(
@@ -40,12 +48,14 @@ class WP_Stream_List_Table extends WP_List_Table {
 	}
 
 	function no_items() {
-		$site = WP_Stream::$api->get_site();
+		$site           = WP_Stream::$api->get_site();
+		$plan_type      = WP_Stream::$api->get_plan_type();
+		$plan_retention = WP_Stream::$api->get_plan_retention();
 
-		if ( isset( $site->plan->type ) && 'free' === $site->plan->type && 0 !== $this->get_total_found_rows() ) {
+		if ( 'free' === $plan_type && ! empty( $plan_retention ) && 0 !== $this->get_total_found_rows() ) {
 			?>
 			<div class="stream-list-table-upgrade">
-				<p><?php printf( _n( 'Your free account is limited to viewing 24 hours of activity history.', 'Your free account is limited to viewing <strong>%d days</strong> of activity history.', $site->plan->retention, 'stream' ), absint( $site->plan->retention ) ) ?></p>
+				<p><?php printf( _n( 'Your free account is limited to viewing <strong>1 day</strong> of activity history.', 'Your free account is limited to viewing <strong>%d days</strong> of activity history.', absint( $plan_retention ), 'stream' ), absint( $plan_retention ) ) ?></p>
 				<p><a href="<?php echo esc_url( WP_Stream_Admin::account_url( sprintf( 'upgrade?site_uuid=%s', WP_Stream::$api->site_uuid ) ) ); ?>" class="button button-primary button-large"><?php _e( 'Upgrade to Pro', 'stream' ) ?></a></p>
 			</div>
 			<?php
@@ -58,9 +68,9 @@ class WP_Stream_List_Table extends WP_List_Table {
 		/**
 		 * Allows devs to add new columns to table
 		 *
-		 * @param  array  default columns
+		 * @since 0.2.0
 		 *
-		 * @return array  updated list of columns
+		 * @return array
 		 */
 		return apply_filters(
 			'wp_stream_list_table_columns',
@@ -180,16 +190,20 @@ class WP_Stream_List_Table extends WP_List_Table {
 		// Add property fields to defaults, including their __in/__not_in variations
 		foreach ( $properties as $property ) {
 			$value = wp_stream_filter_input( INPUT_GET, $property );
-			if ( $value ) {
+
+			// Allow 0 values
+			if ( isset( $value ) && '' !== $value && false !== $value ) {
 				$args[ $property ] = $value;
 			}
 
 			$value_in = wp_stream_filter_input( INPUT_GET, $property . '__in' );
+
 			if ( $value_in ) {
 				$args[ $property . '__in' ] = explode( ',', $value_in );
 			}
 
 			$value_not_in = wp_stream_filter_input( INPUT_GET, $property . '__not_in' );
+
 			if ( $value_not_in ) {
 				$args[ $property . '__not_in' ] = explode( ',', $value_not_in );
 			}
@@ -291,21 +305,14 @@ class WP_Stream_List_Table extends WP_List_Table {
 				$out = $this->column_link( $item->{$column_name}, 'ip', $item->{$column_name} );
 				break;
 
-			case 'blog_id':
-				$blog = get_blog_details( $item->blog_id );
-				$out  = sprintf(
-					'<a href="%s"><span>%s</span></a>',
-					add_query_arg( array( 'blog_id' => $blog->blog_id ), admin_url( 'admin.php?page=wp_stream' ) ),
-					esc_html( $blog->blogname )
-				);
-				break;
-
 			default :
 				/**
 				 * Registers new Columns to be inserted into the table.  The cell contents of this column is set
 				 * below with 'wp_stream_inster_column_default-'
 				 *
-				 * @param array $new_columns Array of new column titles to add
+				 * @since 1.0.0
+				 *
+				 * @return array
 				 */
 				$inserted_columns = apply_filters( 'wp_stream_register_column_defaults', $new_columns = array() );
 
@@ -319,21 +326,23 @@ class WP_Stream_List_Table extends WP_List_Table {
 						 * Also, note that the action name must include the $column_title registered
 						 * with wp_stream_register_column_defaults
 						 */
-						if ( $column_title == $column_name && has_action( "wp_stream_insert_column_default-{$column_title}" ) ) {
+						if ( $column_title == $column_name && has_filter( "wp_stream_insert_column_default-{$column_title}" ) ) {
 							/**
 							 * Allows for the addition of content under a specified column.
 							 *
-							 * @since 1.0.0
+							 * @since 2.0.4
 							 *
-							 * @param object $item Contents of the row
+							 * @param object $item  Contents of the row
+							 *
+							 * @return string
 							 */
-							$out = do_action( "wp_stream_insert_column_default-{$column_title}", $item );
+							$out = apply_filters( "wp_stream_insert_column_default-{$column_title}", $column_name, $item );
 						} else {
 							$out = $column_name;
 						}
 					}
 				} else {
-					$out = $column_name; // xss ok
+					$out = $column_name;
 				}
 		}
 
@@ -346,6 +355,8 @@ class WP_Stream_List_Table extends WP_List_Table {
 		/**
 		 * Filter allows modification of action links for a specific connector
 		 *
+		 * @since 0.5.0
+		 *
 		 * @param  string  connector
 		 * @param  array   array of action links for this connector
 		 * @param  obj     record
@@ -356,6 +367,8 @@ class WP_Stream_List_Table extends WP_List_Table {
 
 		/**
 		 * Filter allows addition of custom links for a specific connector
+		 *
+		 * @since 1.0.0
 		 *
 		 * @param  string  connector
 		 * @param  array   array of custom links for this connector
@@ -558,11 +571,10 @@ class WP_Stream_List_Table extends WP_List_Table {
 		 * Note the format of the filters above, with they key and array
 		 * containing a title and array of items.
 		 *
-		 * @param  array  Array of filters
+		 * @since 0.2.0
 		 *
-		 * @return array  Updated array of filters
+		 * @return array
 		 */
-
 		return apply_filters( 'wp_stream_list_table_filters', $filters );
 	}
 
@@ -589,6 +601,13 @@ class WP_Stream_List_Table extends WP_List_Table {
 								$context_items[ $connector ]['children'][ $context_value ] = $context_item;
 							}
 						}
+
+						if ( isset( $context_items[ $connector ]['children'] ) ) {
+							$labels = wp_list_pluck( $context_items[ $connector ]['children'], 'label' );
+
+							// Sort child items by label
+							array_multisort( $labels, SORT_ASC, $context_items[ $connector ]['children'] );
+						}
 					}
 
 					foreach ( $context_items as $context_value => $context_item ) {
@@ -599,7 +618,10 @@ class WP_Stream_List_Table extends WP_List_Table {
 
 					$data['items'] = $context_items;
 
-					ksort( $data['items'] );
+					$labels = wp_list_pluck( $data['items'], 'label' );
+
+					// Sort top-level items by label
+					array_multisort( $labels, SORT_ASC, $data['items'] );
 
 					// Ouput a hidden input to handle the connector value
 					$filters_string .= '<input type="hidden" name="connector" class="record-filter-connector" />';
@@ -610,7 +632,27 @@ class WP_Stream_List_Table extends WP_List_Table {
 
 		$filters_string .= sprintf( '<input type="submit" id="record-query-submit" class="button" value="%s" />', __( 'Filter', 'stream' ) );
 
-		$url = self_admin_url( WP_Stream_Admin::ADMIN_PARENT_PAGE );
+		// Parse all query vars into an array
+		parse_str( $_SERVER['QUERY_STRING'], $query_vars );
+
+		// Ignore certain query vars and query vars that are empty
+		foreach ( $query_vars as $query_var => $value ) {
+			if ( '' === $value || 'page' === $query_var || 'paged' === $query_var ) {
+				unset( $query_vars[ $query_var ] );
+			}
+		}
+
+		$url = add_query_arg(
+			array(
+				'page' => WP_Stream_Admin::RECORDS_PAGE_SLUG,
+			),
+			self_admin_url( WP_Stream_Admin::ADMIN_PARENT_PAGE )
+		);
+
+		// Display reset action if records are being filtered
+		if ( ! empty( $query_vars ) ) {
+			$filters_string .= sprintf( '<a href="%s" id="record-query-reset"><span class="dashicons dashicons-dismiss"></span> <span class="record-query-reset-text">%s</span></a>', esc_url( $url ), __( 'Reset filters', 'stream' ) );
+		}
 
 		return sprintf( '<div class="alignleft actions">%s</div>', $filters_string ); // xss ok
 	}
@@ -721,7 +763,7 @@ class WP_Stream_List_Table extends WP_List_Table {
 		?>
 		<div class="date-interval">
 
-			<select class="field-predefined hide-if-no-js" name="date_predefined" data-placeholder="<?php _e( 'All Time', 'stream' ); ?>">
+			<select class="field-predefined hide-if-no-js" name="date_predefined" data-placeholder="<?php esc_attr_e( 'All Time', 'stream' ) ?>">
 				<option></option>
 				<option value="custom" <?php selected( 'custom' === $date_predefined ); ?>><?php esc_attr_e( 'Custom', 'stream' ) ?></option>
 				<?php

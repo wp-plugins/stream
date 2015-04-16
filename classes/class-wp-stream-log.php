@@ -52,7 +52,7 @@ class WP_Stream_Log {
 	 * @param  string $action    Action of the event
 	 * @param  int    $user_id   User responsible for the event
 	 *
-	 * @return void
+	 * @return mixed True if updated, otherwise false|WP_Error
 	 */
 	public function log( $connector, $message, $args, $object_id, $context, $action, $user_id = null ) {
 		global $wpdb;
@@ -66,11 +66,12 @@ class WP_Stream_Log {
 		}
 
 		$wp_cron_tracking = isset( WP_Stream_Settings::$options['advanced_wp_cron_tracking'] ) ? WP_Stream_Settings::$options['advanced_wp_cron_tracking'] : false;
-		$agent            = WP_Stream_Author::get_current_agent();
+		$author           = new WP_Stream_Author( $user_id );
+		$agent            = $author->get_current_agent();
 
 		// WP cron tracking requires opt-in
 		if ( ! $wp_cron_tracking && 'wp_cron' === $agent ) {
-			return;
+			return false;
 		}
 
 		$user       = new WP_User( $user_id );
@@ -81,23 +82,15 @@ class WP_Stream_Log {
 			$visibility = 'private';
 		}
 
-		if ( defined( 'WP_CLI' ) && empty( $user->display_name ) ) {
-			$display_name = 'WP-CLI';
-		} elseif ( ! empty( $user->display_name ) ) {
-			$display_name = $user->display_name;
-		} else {
-			$display_name = '';
-		}
-
 		$author_meta = array(
 			'user_email'      => (string) ! empty( $user->user_email ) ? $user->user_email : '',
-			'display_name'    => (string) $display_name,
+			'display_name'    => (string) $author->get_display_name(),
 			'user_login'      => (string) ! empty( $user->user_login ) ? $user->user_login : '',
-			'user_role_label' => (string) ! empty( $user->roles ) ? $roles[ $user->roles[0] ]['name'] : '',
+			'user_role_label' => (string) $author->get_role(),
 			'agent'           => (string) $agent,
 		);
 
-		if ( ( defined( 'WP_CLI' ) ) && function_exists( 'posix_getuid' ) ) {
+		if ( 'wp_cli' === $agent && function_exists( 'posix_getuid' ) ) {
 			$uid       = posix_getuid();
 			$user_info = posix_getpwuid( $uid );
 
@@ -142,9 +135,11 @@ class WP_Stream_Log {
 			'ip'          => (string) wp_stream_filter_input( INPUT_SERVER, 'REMOTE_ADDR', FILTER_VALIDATE_IP ),
 		);
 
-		WP_Stream::$db->store( array( $recordarr ) );
+		$result = WP_Stream::$db->store( array( $recordarr ) );
 
 		self::debug_backtrace( $recordarr );
+
+		return $result;
 	}
 
 	/**

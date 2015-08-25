@@ -3,7 +3,7 @@ Contributors:      fjarrett, lukecarbis, shadyvb, westonruter, stream, xwp
 Tags:              actions, activity, admin, analytics, dashboard, log, notification, security, stream, users
 Requires at least: 3.7
 Tested up to:      4.2
-Stable tag:        2.0.5
+Stable tag:        3.0
 License:           GPLv2 or later
 License URI:       https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -12,8 +12,6 @@ Stream is the easiest and safest way to track content changes happening to your 
 == Description ==
 
 [youtube https://www.youtube.com/watch?v=t_qD4Sp4E70]
-
-**Sign up for free at [https://wp-stream.com](https://wp-stream.com)**
 
 Never be in the dark about WP Admin activity again.
 
@@ -55,17 +53,12 @@ Every logged-in user action is displayed in an activity stream and organized for
 
 **Other Noteworthy Features:**
 
- * Dashboard widget of most recent user activity
+ * Multisite view of all activity records on a network
  * Limit who can view user activity records by user role
  * Set exclude rules to ignore certain kinds of user activity
  * Live update of user activity records in the Stream
- * Private RSS and JSON feeds of user activity records
  * Support for IPv6 addresses
  * WP-CLI command for querying records
-
-**Coming Soon:**
-
- * Multisite view of all activity records on a network
 
 **Languages Supported:**
 
@@ -92,10 +85,19 @@ Thank you for wanting to make Stream better for everyone! We salute you.
 1. Every logged-in user action is displayed in an activity stream and organized for easy filtering and searching.
 2. Enable live updates in Screen Options to watch your site activity appear in near real-time.
 3. Create rules for excluding certain kinds of records from appearing in Stream.
-4. Pro Feature: Build notification rules to be alerted when important changes are made on your site.
-5. Pro Feature: Generate stunning visuals of logged-in user activity and share them with stakeholders or your clients.
+4. Build notification rules to be alerted when important changes are made on your site.
+5. Generate stunning visuals of logged-in user activity and share them with stakeholders or your clients.
 
 == Changelog ==
+
+= 3.0.0 - August 25, 2015 =
+
+* New: Activity logs are now stored locally in WordPress. No data is sent externally and no registration required.
+* New: Migration process for Stream 2 users to move records out of the cloud, and into your local database.
+* New: Various measures and database schema changes to improve Stream's performance.
+* Removed: Notifications and Reports have been removed to be reworked for an upcoming release.
+
+Props [@fjarrett](https://github.com/fjarrett), [@lukecarbis](https://github.com/lukecarbis)
 
 = 2.0.5 - April 23, 2015 =
 

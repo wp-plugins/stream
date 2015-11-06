@@ -34,14 +34,11 @@ abstract class Connector {
 	 * Register all context hooks
 	 */
 	public function register() {
-		$class_name = get_called_class();
-		$class = new $class_name;
-
-		foreach ( $class->actions as $action ) {
-			add_action( $action, array( $class, 'callback' ), null, 5 );
+		foreach ( $this->actions as $action ) {
+			add_action( $action, array( $this, 'callback' ), 10, 5 );
 		}
 
-		add_filter( 'wp_stream_action_links_' . $class->name, array( $class, 'action_links' ), 10, 2 );
+		add_filter( 'wp_stream_action_links_' . $this->name, array( $this, 'action_links' ), 10, 2 );
 	}
 
 	/**
@@ -96,8 +93,7 @@ abstract class Connector {
 	 * @return bool
 	 */
 	public function log( $message, $args, $object_id, $context, $action, $user_id = null ) {
-		$class     = get_called_class();
-		$connector = str_replace( array( 'WP_Stream\\', 'Connector_' ), array( '', '' ), $class );
+		$connector = $this->name;
 
 		$data = apply_filters(
 			'wp_stream_log_data',

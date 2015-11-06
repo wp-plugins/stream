@@ -83,7 +83,7 @@ jQuery( function( $ ) {
 							ajaxurl,
 							{
 								action: 'wp_stream_get_filter_value_by_id',
-								filter: $(element).attr( 'name' ),
+								filter: $( element ).attr( 'name' ),
 								id: id
 							},
 							function( response ) {
@@ -233,7 +233,7 @@ jQuery( function( $ ) {
 			var all_hidden = true;
 
 			// If all filters are hidden, hide the button
-			if ( $( 'div.metabox-prefs [id="date-hide"]' ).is( ':checked' ) ) {
+			if ( $( 'div.metabox-prefs [name="date-hide"]' ).is( ':checked' ) ) {
 				all_hidden = false;
 			}
 
@@ -255,7 +255,7 @@ jQuery( function( $ ) {
 			}
 		}
 
-		if ( $( 'div.metabox-prefs [id="date-hide"]' ).is( ':checked' ) ) {
+		if ( $( 'div.metabox-prefs [name="date-hide"]' ).is( ':checked' ) ) {
 			$( 'div.date-interval' ).show();
 		} else {
 			$( 'div.date-interval' ).hide();
@@ -264,7 +264,7 @@ jQuery( function( $ ) {
 		$( 'div.actions select.chosen-select' ).each( function() {
 			var name = $( this ).prop( 'name' );
 
-			if ( $( 'div.metabox-prefs [id="' + name + '-hide"]' ).is( ':checked' ) ) {
+			if ( $( 'div.metabox-prefs [name="' + name + '-hide"]' ).is( ':checked' ) ) {
 				$( this ).prev( '.select2-container' ).show();
 			} else {
 				$( this ).prev( '.select2-container' ).hide();

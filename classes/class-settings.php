@@ -236,12 +236,20 @@ class Settings {
 						'title'       => esc_html__( 'Keep Records for', 'stream' ),
 						'type'        => 'number',
 						'class'       => 'small-text',
-						'desc'        => esc_html__( 'Maximum number of days to keep activity records. Leave blank to keep records forever.', 'stream' ),
+						'desc'        => esc_html__( 'Maximum number of days to keep activity records.', 'stream' ),
 						'default'     => 30,
-						'min'         => 0,
+						'min'         => 1,
 						'max'         => 999,
 						'step'        => 1,
 						'after_field' => esc_html__( 'days', 'stream' ),
+					),
+					array(
+						'name'        => 'keep_records_indefinitely',
+						'title'       => esc_html__( 'Keep Records Indefinitely', 'stream' ),
+						'type'        => 'checkbox',
+						'desc'        => sprintf( '<strong>%s</strong> %s', esc_html__( 'Not recommended.', 'stream' ), esc_html__( 'Purging old records helps to keep your WordPress installation running optimally.', 'stream' ) ),
+						'after_field' => esc_html__( 'Enabled', 'stream' ),
+						'default'     => 0,
 					),
 				),
 			),
@@ -561,12 +569,20 @@ class Settings {
 				);
 				break;
 			case 'checkbox':
+				if ( isset( $current_value ) ) {
+					$value = $current_value;
+				} elseif ( isset( $default ) ) {
+					$value = $default;
+				} else {
+					$value = 0;
+				}
+
 				$output = sprintf(
 					'<label><input type="checkbox" name="%1$s[%2$s_%3$s]" id="%1$s[%2$s_%3$s]" value="1" %4$s /> %5$s</label>',
 					esc_attr( $option_key ),
 					esc_attr( $section ),
 					esc_attr( $name ),
-					checked( $current_value, 1, false ),
+					checked( $value, 1, false ),
 					wp_kses_post( $after_field )
 				);
 				break;
@@ -1015,5 +1031,4 @@ class Settings {
 
 		return $labels;
 	}
-
 }

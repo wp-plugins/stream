@@ -80,7 +80,7 @@ class Log {
 		// Prevent any meta with null values from being logged
 		$stream_meta = array_filter(
 			$args,
-			function ( $var ) {
+			function( $var ) {
 				return ! is_null( $var );
 			}
 		);
@@ -113,6 +113,10 @@ class Log {
 			'ip'         => (string) wp_stream_filter_input( INPUT_SERVER, 'REMOTE_ADDR', FILTER_VALIDATE_IP ),
 			'meta'       => (array) $stream_meta,
 		);
+
+		if ( 0 === $recordarr['object_id'] ) {
+			unset( $recordarr['object_id'] );
+		}
 
 		$result = $this->plugin->db->insert( $recordarr );
 
@@ -155,6 +159,22 @@ class Log {
 		);
 
 		$exclude_settings = isset( $this->plugin->settings->options['exclude_rules'] ) ? $this->plugin->settings->options['exclude_rules'] : array();
+
+		if ( is_multisite() && is_plugin_active_for_network( $this->plugin->locations['plugin'] ) && ! is_network_admin() ) {
+			$multisite_options = (array) get_site_option( 'wp_stream_network', array() );
+			$multisite_exclude_settings = isset( $multisite_options['exclude_rules'] ) ? $multisite_options['exclude_rules'] : array();
+
+			if ( ! empty( $multisite_exclude_settings ) ) {
+				foreach ( $multisite_exclude_settings['exclude_row'] as $key => $rule ) {
+					$exclude_settings['exclude_row'][]    = $multisite_exclude_settings['exclude_row'][ $key ];
+					$exclude_settings['author_or_role'][] = $multisite_exclude_settings['author_or_role'][ $key ];
+					$exclude_settings['connector'][]      = $multisite_exclude_settings['connector'][ $key ];
+					$exclude_settings['context'][]        = $multisite_exclude_settings['context'][ $key ];
+					$exclude_settings['action'][]         = $multisite_exclude_settings['action'][ $key ];
+					$exclude_settings['ip_address'][]     = $multisite_exclude_settings['ip_address'][ $key ];
+				}
+			}
+		}
 
 		if ( isset( $exclude_settings['exclude_row'] ) && ! empty( $exclude_settings['exclude_row'] ) ) {
 			foreach ( $exclude_settings['exclude_row'] as $key => $value ) {

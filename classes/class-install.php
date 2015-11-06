@@ -16,15 +16,8 @@ class Install {
 	public $option_key = 'wp_stream_db';
 
 	/**
-	 * Holds the database table prefix
-	 *
-	 * @var string
-	 */
-	public $table_prefix;
-
-	/**
 	 * Holds version of database at last update
-]	 *
+	 *
 	 * @var string
 	 */
 	public $db_version;
@@ -89,15 +82,6 @@ class Install {
 			return;
 		}
 
-		/**
-		 * Allows devs to alter the tables prefix, default to base_prefix
-		 *
-		 * @param string $prefix
-		 *
-		 * @return string
-		 */
-		$this->table_prefix = apply_filters( 'wp_stream_db_tables_prefix', $wpdb->base_prefix );
-
 		if ( empty( $this->db_version ) ) {
 			$this->install( $this->plugin->get_version() );
 
@@ -113,12 +97,8 @@ class Install {
 		if ( ! $update ) {
 			$this->update_required = true;
 			$this->success_db      = $this->update( $this->db_version, $this->plugin->get_version(), array( 'type' => 'auto' ) );
-
-			return;
-		}
-
-		if ( 'update_and_continue' === $update ) {
-			$this->$success_db = $this->update( $this->db_version, $this->plugin->get_version(), array( 'type' => 'user' ) );
+		} elseif ( 'update_and_continue' === $update ) {
+			$this->success_db = $this->update( $this->db_version, $this->plugin->get_version(), array( 'type' => 'user' ) );
 		}
 
 		$versions = $this->db_update_versions();
@@ -167,7 +147,10 @@ class Install {
 		$missing_tables = array();
 
 		foreach ( $this->plugin->db->get_table_names() as $table_name ) {
-			if ( $wpdb->get_var( "SHOW TABLES LIKE '$table_name'" ) !== $table_name ) {
+			$table_search = $wpdb->get_var(
+				$wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name )
+			);
+			if ( $table_search !== $table_name ) {
 				$missing_tables[] = $table_name;
 			}
 		}
@@ -333,7 +316,7 @@ class Install {
 		<div class="updated">
 			<form method="post" action="<?php echo esc_url( remove_query_arg( 'wp_stream_update' ) ) ?>" style="display:inline;">
 				<p><strong><?php esc_html_e( 'Update Complete', 'stream' ) ?></strong></p>
-				<p><?php esc_html_e( sprintf( 'Your Stream database has been successfully updated from %1$s to %2$s!', esc_html( $this->db_version ), esc_html( WP_Stream::VERSION ) ), 'stream' ) ?></p>
+				<p><?php esc_html_e( sprintf( 'Your Stream database has been successfully updated from %1$s to %2$s!', esc_html( $this->db_version ), esc_html( $this->plugin->get_version() ) ), 'stream' ) ?></p>
 				<?php submit_button( esc_html__( 'Continue', 'stream' ), 'secondary', false ) ?>
 			</form>
 		</div>
@@ -352,14 +335,8 @@ class Install {
 	 */
 	public function db_update_versions() {
 		$db_update_versions = array(
-			'1.1.4' /* @version 1.1.4 Fix mysql character set issues */,
-			'1.1.7' /* @version 1.1.7 Modified the ip column to varchar(39) */,
-			'1.2.8' /* @version 1.2.8 Change the context for Media connectors to the attachment type */,
-			'1.3.0' /* @version 1.3.0 Backward settings compatibility for old version plugins */,
-			'1.3.1' /* @version 1.3.1 Update records of Installer to Theme Editor connector */,
-			'1.4.0' /* @version 1.4.0 Add the author_role column and prepare tables for multisite support */,
-			'1.4.2' /* @version 1.4.2 Patch to fix rare multisite upgrade not triggering */,
-			'1.4.5' /* @version 1.4.5 Patch to fix author_meta broken values */,
+			'3.0.0' /* @version 3.0.0 Drop the stream_context table, changes to stream table */,
+			'3.0.2' /* @version 3.0.2 Fix uppercase values in stream table, connector column */,
 		);
 
 		/**
@@ -383,6 +360,7 @@ class Install {
 	 */
 	public function update( $db_version, $current_version, $update_args ) {
 		$versions = $this->db_update_versions();
+		include_once( $this->plugin->locations['inc_dir'] . 'db-updates.php' );
 
 		foreach ( $versions as $version ) {
 			if ( ! isset( $update_args['type'] ) ) {
@@ -410,14 +388,12 @@ class Install {
 	 *
 	 * @return string
 	 */
-	private function install( $current_version ) {
+	public function install( $current_version ) {
 		global $wpdb;
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 
-		$prefix = $this->table_prefix;
-
-		$sql = "CREATE TABLE {$prefix}stream (
+		$sql = "CREATE TABLE {$wpdb->base_prefix}stream (
 			ID bigint(20) unsigned NOT NULL AUTO_INCREMENT,
 			site_id bigint(20) unsigned NOT NULL DEFAULT '1',
 			blog_id bigint(20) unsigned NOT NULL DEFAULT '1',
@@ -465,7 +441,7 @@ class Install {
 
 		\dbDelta( $sql );
 
-		$sql = "CREATE TABLE {$prefix}stream_meta (
+		$sql = "CREATE TABLE {$wpdb->base_prefix}stream_meta (
 			meta_id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
 			record_id bigint(20) unsigned NOT NULL,
 			meta_key varchar(200) NOT NULL,
